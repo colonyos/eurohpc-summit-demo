@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 app = FastAPI()
 
 origins = [
-    "http://localhost:3000",  # The origin of the React app
+        "http://localhost:3000",  "http://rocinante:3000",  # for local development
 ]
 
 app.add_middleware(
