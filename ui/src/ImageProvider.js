@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
 import axios from 'axios';
 
-const ImageContext = createContext();
+export const ImageContext = createContext();
 
 export const useImages = () => useContext(ImageContext);
 
