@@ -25,7 +25,7 @@ class ImageList extends Component {
                 <div>
                     <div>Image List Here</div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}> {/* Container for all image pairs */}
-                        {uploadedImages.map((imageUrl, index) => (
+                        {[...uploadedImages].reverse().map((imageUrl, index) => (
                             <div key={index} style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}> {/* Container for each image pair */}
                                 <ImageDisplay imageUrl={imageUrl} dataPipelineUrl={`res_${imageUrl}`} />
                                 <ImageDisplay imageUrl={`res_${imageUrl}`} />
@@ -101,11 +101,11 @@ class ImageDisplay extends Component {
     return (
       <div style={{ display: 'flex', alignItems: 'center', margin: '10px' }}>
         {firstImageError ? (
-          <div style={{ width: '300px', height: '200px', backgroundColor: '#f0f0f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <p>Image not available</p>
+          <div style={{ width: '400px', height: '400px',  border: '2px dashed #ccc', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <p>Processing ...</p>
           </div>
         ) : (
-          <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '300px' }} />
+          <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '400px' }} />
         )}
       </div>
     );
@@ -154,11 +154,11 @@ class ImageDisplayOld extends Component {
      return (
        <div style={{ display: 'flex', alignItems: 'center', margin: '10px' }}> {/* Flex container for each pair of images */}
          {firstImageError ? (
-           <div style={{ width: '300px', height: '200px', backgroundColor: '#f0f0f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+           <div style={{ width: '600px', height: '400px', backgroundColor: '#f0f0f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
              <p>Image not available</p>
            </div>
          ) : (
-           <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '300px' }} />
+           <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '600px' }} />
          )}
        </div>
      );
