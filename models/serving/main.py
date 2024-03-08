@@ -136,15 +136,22 @@ red_mask[:, :, 0] = 1  # Set the red channel to maximum
 # Apply the red mask on the original image
 colored_image = np.where(thresholded_mask[:, :, np.newaxis] == 1, red_mask, original_image_array)
 
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+#width, height = colored_image.size
+
+dpi = 600  # Change the dpi if needed
+figsize = (image.size[0]+100 / dpi, image.size[1]+100 / dpi)
+
+plt.figure(figsize=figsize)  # Adjust figure size as needed
+plt.imshow(colored_image)
+plt.tight_layout(pad=0)
 plt.axis('off')  # Hide the axis
 plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
 plt.margins(0, 0)
 plt.gca().xaxis.set_major_locator(plt.NullLocator())
 plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
-plt.imshow(colored_image)
-
-plt.tight_layout()
 image_path = '/cfs/eurohpc-summit-demo/generated-images/' + image_name
 plt.savefig(image_path)
+#plt.savefig(processed_image_path, bbox_inches='tight', pad_inches=0)
+#plt.savefig(image_path, dpi=dpi, bbox_inches='tight', pad_inches=0, transparent=True)
+

@@ -118,7 +118,7 @@ class ImageDisplay extends Component {
               </div>
             </div>
           ) : (
-            <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '400px' }} />
+            <img src={firstImageSrc} alt="Uploaded" style={{ width: '400px', height: '400px'}} />
           )}
         </div>
       );

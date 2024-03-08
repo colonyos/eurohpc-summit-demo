@@ -127,7 +127,6 @@ def generate_funcspec(image_name):
         }
 }
 
-
 @app.post("/upload/")
 async def upload_image(file: UploadFile = File(...)):
     original_image_path = f"images/{file.filename}"
