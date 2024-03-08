@@ -1,0 +1,18 @@
+projectname: eurohpc-unet-model-inference
+conditions:
+  executorNames:
+  #- leonardo-booster
+  - rocinante
+  nodes: 1
+  processesPerNode: 1
+  cpu: 10000m
+  mem: 15000Mi
+  walltime: 600
+  gpu:
+    count: 1
+    name: ""
+environment:
+  docker: johan/hackaton
+  rebuildImage: false
+  cmd: python3
+  source: main.py

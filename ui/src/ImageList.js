@@ -23,12 +23,12 @@ class ImageList extends Component {
         <ImageContext.Consumer>
             {({ uploadedImages }) => (
                 <div>
-                    <div>Image List Here</div>
+                    <div>Water detection jobs</div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}> {/* Container for all image pairs */}
                         {[...uploadedImages].reverse().map((imageUrl, index) => (
                             <div key={index} style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}> {/* Container for each image pair */}
-                                <ImageDisplay imageUrl={imageUrl} dataPipelineUrl={`res_${imageUrl}`} />
-                                <ImageDisplay imageUrl={`res_${imageUrl}`} />
+                                <ImageDisplay imageUrl={`http://rocinante:8000/images/${imageUrl}`} />
+                                <ImageDisplay imageUrl={`http://rocinante:8000/generated-images/${imageUrl}`} />
                             </div>
                         ))}
                     </div>
@@ -45,12 +45,21 @@ class ImageDisplay extends Component {
     this.state = {
       firstImageSrc: null,
       firstImageError: false,
+      processingDots: '',
     };
     this.retryInterval = null; // Initialize a variable for the retry interval
   }
 
+  updateProcessingDots = () => {
+ 	 this.setState(prevState => {
+    	const dots = prevState.processingDots;
+    	return { processingDots: dots.length < 3 ? dots + '.' : '' }; // Cycle from '' to '...' and back
+  	});
+  };
+
   componentDidMount() {
     this.fetchFirstImage();
+	this.processingInterval = setInterval(this.updateProcessingDots, 1000);
   }
 
   componentDidUpdate(prevProps) {
@@ -62,10 +71,11 @@ class ImageDisplay extends Component {
 
   componentWillUnmount() {
     this.clearRetryInterval();
+    clearInterval(this.processingInterval);
   }
 
   fetchFirstImage = () => {
-    fetch(`http://rocinante:8000/uploads/${this.props.imageUrl}`)
+    fetch(`${this.props.imageUrl}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -96,74 +106,23 @@ class ImageDisplay extends Component {
   };
 
   render() {
-    const { firstImageSrc, firstImageError } = this.state;
-
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', margin: '10px' }}>
-        {firstImageError ? (
-          <div style={{ width: '400px', height: '400px',  border: '2px dashed #ccc', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <p>Processing ...</p>
-          </div>
-        ) : (
-          <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '400px' }} />
-        )}
-      </div>
-    );
-  }
-}
-
-
-class ImageDisplayOld extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      firstImageSrc: null,
-      firstImageError: false,
-    };
-  }
-
-  componentDidMount() {
-    this.fetchFirstImage();
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.imageUrl !== this.props.imageUrl) {
-      this.fetchFirstImage();
-    }
-  }
-
-  fetchFirstImage = () => {
-    fetch(`http://rocinante:8000/uploads/${this.props.imageUrl}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.blob();
-      })
-      .then(blob => {
-        this.setState({ firstImageSrc: URL.createObjectURL(blob), firstImageError: false });
-      })
-      .catch(() => {
-        this.setState({ firstImageError: true });
-      });
-  };
-
-  render() {
-     const { firstImageSrc, firstImageError } = this.state;
-   
-     return (
-       <div style={{ display: 'flex', alignItems: 'center', margin: '10px' }}> {/* Flex container for each pair of images */}
-         {firstImageError ? (
-           <div style={{ width: '600px', height: '400px', backgroundColor: '#f0f0f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-             <p>Image not available</p>
-           </div>
-         ) : (
-           <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '600px' }} />
-         )}
-       </div>
-     );
-  }
-
+      const { firstImageSrc, firstImageError, processingDots } = this.state;
+    
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', margin: '10px' }}>
+          {firstImageError ? (
+            <div style={{ width: '400px', height: '400px', border: '2px dashed #ccc', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <p style={{ margin: 0 }}>Processing</p>
+                <p style={{ margin: 0, height: '20px' }}>&nbsp;{processingDots}</p>
+              </div>
+            </div>
+          ) : (
+            <img src={firstImageSrc} alt="Uploaded" style={{ maxWidth: '400px' }} />
+          )}
+        </div>
+      );
+   }
 }
 
 export default ImageList;
