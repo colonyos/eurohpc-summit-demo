@@ -21,25 +21,33 @@ class ImageList extends Component {
   render() {
     return (
         <ImageContext.Consumer>
-            {({ uploadedImages }) => (
-                <div>
-                    <div>Water detection jobs</div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}> {/* Container for all image pairs */}
-                        {[...uploadedImages].reverse().map((imageUrl, index) => (
-                            <div key={index} style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}> {/* Container for each image pair */}
-                                <ImageDisplay imageUrl={`http://rocinante:8000/images/${imageUrl}`} />
-                                <ImageDisplay imageUrl={`http://rocinante:8000/generated-images/${imageUrl}`} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+          {({ uploadedImages, analyzedImageVersion }) => (
+            <div>
+              <div>Water detection jobs</div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {[...uploadedImages].reverse().map((imageUrl, index) => (
+                  <div key={index} style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                    <ImageDisplay
+                      imageUrl={`http://rocinante:8000/images/${imageUrl}`}
+                      refreshKey={analyzedImageVersion} // Pass analyzedImageVersion as refreshKey prop
+                    />
+                    <ImageDisplay
+                      imageUrl={`http://rocinante:8000/generated-images/${imageUrl}`}
+                      refreshKey={analyzedImageVersion} // Also pass it here to ensure both images can refresh
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </ImageContext.Consumer>
     );
   }
 }
 
 class ImageDisplay extends Component {
+  static contextType = ImageContext;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -47,13 +55,12 @@ class ImageDisplay extends Component {
       firstImageError: false,
       processingDots: '',
     };
-    this.retryInterval = null; // Initialize a variable for the retry interval
   }
 
   updateProcessingDots = () => {
  	 this.setState(prevState => {
     	const dots = prevState.processingDots;
-    	return { processingDots: dots.length < 3 ? dots + '.' : '' }; // Cycle from '' to '...' and back
+    	return { processingDots: dots.length < 3 ? dots + '.' : '' };
   	});
   };
 
@@ -63,14 +70,19 @@ class ImageDisplay extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.imageUrl !== this.props.imageUrl) {
-      this.clearRetryInterval();
-      this.fetchFirstImage();
+    const { analyzedImageVersion } = this.context; 
+
+    // if (prevProps.imageUrl !== this.props.imageUrl) {
+    //   URL.revokeObjectURL(this.state.firstImageSrc); // Revoke the old blob URL
+    //   this.fetchFirstImage(); // Fetch the new image
+    // }
+
+	if (prevProps.imageUrl !== this.props.imageUrl || prevProps.refreshKey !== this.props.refreshKey) {
+        this.fetchFirstImage(); // Trigger the fetch for the new image
     }
   }
-
+  
   componentWillUnmount() {
-    this.clearRetryInterval();
     clearInterval(this.processingInterval);
   }
 
@@ -83,31 +95,19 @@ class ImageDisplay extends Component {
         return response.blob();
       })
       .then(blob => {
+		console.log("XXXXXXXXXXXXXXXXXXXXXXXXX")
         this.setState({ firstImageSrc: URL.createObjectURL(blob), firstImageError: false });
-        this.clearRetryInterval(); // Clear the retry interval on successful fetch
+    	clearInterval(this.processingInterval);
       })
       .catch(() => {
         this.setState({ firstImageError: true });
-        this.setRetryInterval(); // Set up an interval to retry fetching the image
       });
-  };
-
-  setRetryInterval = () => {
-    if (!this.retryInterval) {
-      this.retryInterval = setInterval(this.fetchFirstImage, 1000); // Retry every second
-    }
-  };
-
-  clearRetryInterval = () => {
-    if (this.retryInterval) {
-      clearInterval(this.retryInterval);
-      this.retryInterval = null;
-    }
   };
 
   render() {
       const { firstImageSrc, firstImageError, processingDots } = this.state;
-    
+      const { analyzedImageVersion } = this.context; 
+   
       return (
         <div style={{ display: 'flex', alignItems: 'center', margin: '10px' }}>
           {firstImageError ? (
@@ -118,11 +118,13 @@ class ImageDisplay extends Component {
               </div>
             </div>
           ) : (
-            <img src={firstImageSrc} alt="Uploaded" style={{ width: '400px', height: '400px'}} />
+			 <img src={firstImageSrc} style={{ width: '400px', height: '400px'}} />
           )}
         </div>
       );
    }
 }
+
+ImageDisplay.contextType = ImageContext;
 
 export default ImageList;

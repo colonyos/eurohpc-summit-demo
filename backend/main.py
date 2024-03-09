@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +8,8 @@ import shutil
 from pycolonies import colonies_client 
 import os
 import threading
+from pydantic import BaseModel
+from concurrent.futures import ThreadPoolExecutor
 
 app = FastAPI()
 
@@ -146,22 +148,32 @@ async def upload_image(file: UploadFile = File(...)):
     processed_image_path = f"images/{file.filename}"
     plt.savefig(processed_image_path, bbox_inches='tight', pad_inches=0, dpi=300)
     plt.close()
-
-    def sync_and_wait():
-        colonies, colonyname, colony_prvkey, executor_name, prvkey = colonies_client()
         
-        # sync the image to cfs
-        colonies.sync(f"images", "/eurohpc-summit-demo/images", False, colonyname, prvkey)
+    colonies, colonyname, _, _, prvkey = colonies_client()
+    colonies.sync(f"images", "/eurohpc-summit-demo/images", False, colonyname, prvkey)
 
-        funcspec = generate_funcspec(file.filename)
-
-        process = colonies.submit(funcspec, prvkey)
-        process = colonies.wait(process, 100, prvkey)
-
-        colonies.sync(f"generated-images", "/eurohpc-summit-demo/generated-images", False, colonyname, prvkey)
-
-    thread = threading.Thread(target=sync_and_wait)
-    thread.start()
-    
     print(f"Image uploaded: {file.filename}")
     return {"filename": f"{file.filename}"}
+
+class AnalyzeRequest(BaseModel):
+    filename: str
+
+def submit_func(filename):
+    colonies, colonyname, _, _, prvkey = colonies_client()
+    funcspec = generate_funcspec(filename)
+    process = colonies.submit(funcspec, prvkey)
+    colonies.wait(process, 100, prvkey)
+    colonies.sync(f"generated-images", "/eurohpc-summit-demo/generated-images", False, colonyname, prvkey)
+
+async def run_in_threadpool(func, *args, **kwargs):
+    with ThreadPoolExecutor() as executor:
+        future = executor.submit(func, *args, **kwargs)
+        return future.result()
+
+@app.post("/analyze/")
+async def analyze_image(request: AnalyzeRequest, background_tasks: BackgroundTasks):
+   filename = request.filename
+   background_tasks.add_task(run_in_threadpool, submit_func, filename)
+   
+   print(f"Image analyzed: {filename}")
+   return {"generated_filename": f"{filename}"}
