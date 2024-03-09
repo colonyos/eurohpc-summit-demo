@@ -10,6 +10,7 @@ import os
 import threading
 from pydantic import BaseModel
 from concurrent.futures import ThreadPoolExecutor
+import asyncio
 
 app = FastAPI()
 
@@ -158,22 +159,23 @@ async def upload_image(file: UploadFile = File(...)):
 class AnalyzeRequest(BaseModel):
     filename: str
 
-def submit_func(filename):
+def submit(filename):
     colonies, colonyname, _, _, prvkey = colonies_client()
     funcspec = generate_funcspec(filename)
     process = colonies.submit(funcspec, prvkey)
     colonies.wait(process, 100, prvkey)
     colonies.sync(f"generated-images", "/eurohpc-summit-demo/generated-images", False, colonyname, prvkey)
+    return filename 
 
-async def run_in_threadpool(func, *args, **kwargs):
-    with ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        return future.result()
+async def async_submit(filename):
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, submit , filename)
+    return result
 
 @app.post("/analyze/")
-async def analyze_image(request: AnalyzeRequest, background_tasks: BackgroundTasks):
+async def analyze_image(request: AnalyzeRequest):
    filename = request.filename
-   background_tasks.add_task(run_in_threadpool, submit_func, filename)
+   generated_filename = await async_submit(filename)
    
    print(f"Image analyzed: {filename}")
-   return {"generated_filename": f"{filename}"}
+   return {"generated_filename": f"{generated_filename}"}

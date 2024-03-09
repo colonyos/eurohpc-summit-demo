@@ -66,16 +66,10 @@ class ImageDisplay extends Component {
 
   componentDidMount() {
     this.fetchFirstImage();
-	this.processingInterval = setInterval(this.updateProcessingDots, 1000);
   }
 
   componentDidUpdate(prevProps) {
     const { analyzedImageVersion } = this.context; 
-
-    // if (prevProps.imageUrl !== this.props.imageUrl) {
-    //   URL.revokeObjectURL(this.state.firstImageSrc); // Revoke the old blob URL
-    //   this.fetchFirstImage(); // Fetch the new image
-    // }
 
 	if (prevProps.imageUrl !== this.props.imageUrl || prevProps.refreshKey !== this.props.refreshKey) {
         this.fetchFirstImage(); // Trigger the fetch for the new image
@@ -95,11 +89,11 @@ class ImageDisplay extends Component {
         return response.blob();
       })
       .then(blob => {
-		console.log("XXXXXXXXXXXXXXXXXXXXXXXXX")
         this.setState({ firstImageSrc: URL.createObjectURL(blob), firstImageError: false });
     	clearInterval(this.processingInterval);
       })
       .catch(() => {
+		this.processingInterval = setInterval(this.updateProcessingDots, 1000);
         this.setState({ firstImageError: true });
       });
   };
