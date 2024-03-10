@@ -145,7 +145,7 @@ sys.stdout.flush()
 def mask_threshold(image, threshold=0.25):
   return image>threshold
 
-epochs =  1 
+epochs = 600 
 batch_size = 32
 
 history = model.fit(images_train, mask_train,
@@ -181,7 +181,7 @@ plt.savefig(projdir + '/result/res_' + processid + '.png')
 # Save model weights 
 ####################################################
 
-name = "1epoch" 
+name = "unet600" 
 weights_path = os.path.join(projdir, 'result', f'weights_{name}.h5')
 model.save_weights(weights_path)
 print(f"Model weights saved to {weights_path}")

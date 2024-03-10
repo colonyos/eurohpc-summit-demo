@@ -1,18 +1,37 @@
-# Instructions
+# Introduction 
+This is demo application how to use ColonyOS for satelite data analyzis.  
 
-## Preparations
-### Upload dataset
+![Setup](setup.png)
+![UI](ui.png)
 
+## Train models
 ```console
-colonies fs sync -l /eurohpc-summit-demo/dataset -d dataset
+cd models/unet
+pollinator run --follow
 ```
 
-### Upload source code
+## Deploy models 
 ```console
-colonies fs sync -l /eurohpc-summit-demo/models -d models
-```
-
-
-colonies fs sync -l /eurohpc-summit-demo/images -d images --keeplocal=true
 colonies fs sync -l /eurohpc-summit-demo/pretrained-models -d pretrained-models --keeplocal=true
+```
+
+## Deploy Model serving code 
+```console
 colonies fs sync -l /eurohpc-summit-demo/models/serving -d models/serving --keeplocal=true
+```
+## Start servers
+### React UI
+```console
+cd ui
+npm start
+```
+
+Will listen at port :3000.
+
+### React UI
+```console
+cd backend
+./start.sh
+```
+
+Will listen at port :8000.
