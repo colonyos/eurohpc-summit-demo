@@ -91,52 +91,39 @@ model = Model(input_layer, output_layer)
 model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
 model.summary()
 
-weights_path = '/cfs/eurohpc-summit-demo/pretrained-models/weights_60epoch.h5'
+model_name = str(os.environ.get("MODEL"))
+weights_path = '/cfs/pollinator/eurohpc-unet-model/result/models/' + model_name 
 model.load_weights(weights_path)
+print("model: ", weights_path)
 
 image_name = str(os.environ.get("IMAGE"))
 image_path = '/cfs/eurohpc-summit-demo/images/' + image_name
+print("image: ", image_path)
+
 image = Image.open(image_path)
 
 # Preprocess the image
 image = image.resize((SIZE, SIZE))
 image_array = np.asarray(image).astype('float32') / 255.0  # Normalize pixel values if your model expects this
-image_array = np.expand_dims(image_array, axis=0)  # Add batch dimension
+image_array = np.expand_dims(image_array, axis=0)
 
 # Perform inference
 prediction = model.predict(image_array)
 
-# Process the output (for example, in case of segmentation, you might want to apply a threshold)
-# This step depends on your specific use case and model output
-
-# If the output is a segmentation mask, you might want to visualize it
-if prediction.shape[-1] == 1:  # Assuming the model outputs a single-channel segmentation mask
+if prediction.shape[-1] == 1:
     predicted_mask = prediction[0, :, :, 0]  # Remove batch dimension and get the mask
     thresholded_mask = (predicted_mask > 0.5).astype(np.uint8)  # Apply a threshold to get a binary mask
 
-# Load the original image
 original_image = Image.open(image_path)
 original_image = original_image.resize((SIZE, SIZE))
 original_image_array = np.asarray(original_image).astype('float32') / 255.0
 
-# Preprocess the image for the model
 image_for_model = np.expand_dims(original_image_array, axis=0)  # Add batch dimension
-
-# Perform inference to get the mask
 predicted_mask = model.predict(image_for_model)[0, :, :, 0]  # Assuming the model outputs a single-channel mask
-
-# Apply a threshold to create a binary mask
 thresholded_mask = (predicted_mask > 0.5).astype(np.uint8)
-
-# Create a red mask where the water regions will be colored in red
-# The red mask has the same height and width as the original image, but with 3 channels for RGB
 red_mask = np.zeros_like(original_image_array)
 red_mask[:, :, 0] = 1  # Set the red channel to maximum
-
-# Apply the red mask on the original image
 colored_image = np.where(thresholded_mask[:, :, np.newaxis] == 1, red_mask, original_image_array)
-
-#width, height = colored_image.size
 
 dpi = 600  # Change the dpi if needed
 figsize = (image.size[0]+100 / dpi, image.size[1]+100 / dpi)
@@ -152,6 +139,3 @@ plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
 image_path = '/cfs/eurohpc-summit-demo/generated-images/' + image_name
 plt.savefig(image_path)
-#plt.savefig(processed_image_path, bbox_inches='tight', pad_inches=0)
-#plt.savefig(image_path, dpi=dpi, bbox_inches='tight', pad_inches=0, transparent=True)
-

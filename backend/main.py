@@ -6,11 +6,10 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import shutil
 from pycolonies import colonies_client 
-import os
-import threading
 from pydantic import BaseModel
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
+import string
+import random
 
 app = FastAPI()
 
@@ -29,7 +28,7 @@ app.add_middleware(
 app.mount("/images", StaticFiles(directory="images"), name="images")
 app.mount("/generated-images", StaticFiles(directory="generated-images"), name="generated-images")
 
-def generate_funcspec(image_name):
+def generate_funcspec(image_name, executor, model):
     return {
         "nodename": "",
         "funcname": "execute",
@@ -50,7 +49,7 @@ def generate_funcspec(image_name):
         "conditions": {
             "colonyname": "hpc",
             "executornames": [
-                "rocinante"
+                executor,
             ],
             "executortype": "container-executor",
             "dependencies": [],
@@ -85,8 +84,10 @@ def generate_funcspec(image_name):
                     }
                 },
                 {
-                    "label": "/eurohpc-summit-demo/pretrained-models",
-                    "dir": "/eurohpc-summit-demo/pretrained-models",
+                    "label": "/pollinator/eurohpc-unet-model/result/models",
+                    "dir": "/pollinator/eurohpc-unet-model/result/models",
+                    #"label": "/eurohpc-summit-demo/pretrained-models",
+                    #"dir": "/eurohpc-summit-demo/pretrained-models",
                     "keepfiles": True,
                     "onconflicts": {
                         "onstart": {
@@ -126,6 +127,7 @@ def generate_funcspec(image_name):
             ]
         },
         "env": {
+            "MODEL": model,
             "IMAGE": image_name,
         }
 }
@@ -146,36 +148,56 @@ async def upload_image(file: UploadFile = File(...)):
     plt.gca().xaxis.set_major_locator(plt.NullLocator())
     plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
-    processed_image_path = f"images/{file.filename}"
+    # Randomly generated filename
+    random_filename = ''.join(random.choices(string.ascii_letters + string.digits, k=16)) + ".jpg"
+    print(f"Random filename: {random_filename}")
+
+    processed_image_path = f"images/{random_filename}"
     plt.savefig(processed_image_path, bbox_inches='tight', pad_inches=0, dpi=300)
     plt.close()
         
     colonies, colonyname, _, _, prvkey = colonies_client()
     colonies.sync(f"images", "/eurohpc-summit-demo/images", False, colonyname, prvkey)
 
-    print(f"Image uploaded: {file.filename}")
-    return {"filename": f"{file.filename}"}
+    print(f"Image uploaded: {random_filename}")
+    return {"filename": f"{random_filename}"}
 
 class AnalyzeRequest(BaseModel):
     filename: str
+    executor: str
+    model: str
 
-def submit(filename):
+def submit(filename, executor, model):
     colonies, colonyname, _, _, prvkey = colonies_client()
-    funcspec = generate_funcspec(filename)
+    funcspec = generate_funcspec(filename, executor, model)
     process = colonies.submit(funcspec, prvkey)
     colonies.wait(process, 100, prvkey)
     colonies.sync(f"generated-images", "/eurohpc-summit-demo/generated-images", False, colonyname, prvkey)
     return filename 
 
-async def async_submit(filename):
+async def async_submit(filename, executor, model):
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, submit , filename)
+    result = await loop.run_in_executor(None, submit, filename, executor, model)
     return result
+
+@app.get("/executors/")
+async def executors():
+   colonies, colonyname, _, _, prvkey = colonies_client()
+   executors = colonies.list_executors(colonyname, prvkey)
+   executor_names = [executor['executorname'] for executor in executors]
+   return executor_names
+
+@app.get("/models/")
+async def models():
+   colonies, colonyname, _, _, prvkey = colonies_client()
+   files = colonies.get_files("/pollinator/eurohpc-unet-model/result/models", colonyname, prvkey)
+   model_names = [file['name'] for file in files]
+   return model_names 
 
 @app.post("/analyze/")
 async def analyze_image(request: AnalyzeRequest):
    filename = request.filename
-   generated_filename = await async_submit(filename)
-   
-   print(f"Image analyzed: {filename}")
+   executor = request.executor
+   model = request.model
+   generated_filename = await async_submit(filename, executor, model)
    return {"generated_filename": f"{generated_filename}"}

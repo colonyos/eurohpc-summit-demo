@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext, createContext, Component } from 'react';
 import axios from 'axios';
 import { ImageContext } from './ImageProvider'
+import { config } from './config'  
 
 class ImageList extends Component {
   static contextType = ImageContext;
@@ -23,16 +24,15 @@ class ImageList extends Component {
         <ImageContext.Consumer>
           {({ uploadedImages, analyzedImageVersion }) => (
             <div>
-              <div>Water detection jobs</div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {[...uploadedImages].reverse().map((imageUrl, index) => (
                   <div key={index} style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
                     <ImageDisplay
-                      imageUrl={`http://rocinante:8000/images/${imageUrl}`}
+                      imageUrl={config.backend + `/images/${imageUrl}`}
                       refreshKey={analyzedImageVersion} // Pass analyzedImageVersion as refreshKey prop
                     />
                     <ImageDisplay
-                      imageUrl={`http://rocinante:8000/generated-images/${imageUrl}`}
+                      imageUrl={config.backend + `/generated-images/${imageUrl}`}
                       refreshKey={analyzedImageVersion} // Also pass it here to ensure both images can refresh
                     />
                   </div>

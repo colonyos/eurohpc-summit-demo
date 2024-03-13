@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
 import axios from 'axios';
 import { useImages } from './ImageProvider'
+import { Card } from 'react-bootstrap'; 
+import { config } from './config'  
 
 const DragDrop = () => {
-  const {uploadedImages, setUploadedImages, analyzedImages, setAnalyzedImages, setAnalyzedImageVersion } = useImages();
+  const {uploadedImages, setUploadedImages, analyzedImages, setAnalyzedImages, setAnalyzedImageVersion, selectedExecutor, selectedModel } = useImages();
   const [uploadError, setUploadError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -15,7 +17,7 @@ const DragDrop = () => {
         const formData = new FormData();
         formData.append('file', file);
     
-        axios.post('http://rocinante:8000/upload', formData, {
+        axios.post(config.backend + '/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -23,9 +25,9 @@ const DragDrop = () => {
         .then(response => {
           const uploadedImageUrl = response.data.filename;
           setUploadedImages(oldImages => [...oldImages, uploadedImageUrl]);
-		  //setRefreshKey(prevKey => prevKey + 1); // Increment the key to force re-render
 		  setAnalyzedImageVersion(prevVersion => prevVersion + 1);
-	  	  return axios.post(`http://rocinante:8000/analyze`, { filename: uploadedImageUrl }, {
+
+	  	  return axios.post(config.backend  + `/analyze`, { filename: uploadedImageUrl, executor: selectedExecutor, model: selectedModel }, {
              headers: {
                 'Content-Type': 'application/json',
              },
@@ -34,7 +36,6 @@ const DragDrop = () => {
         .then(analysisResponse => {
           const analyzedImageUrl = analysisResponse.data.generated_filename;
 		  setAnalyzedImageVersion(prevVersion => prevVersion + 1);
-          //setAnalyzedImages(oldImages => [...oldImages, analyzedImageUrl]);
 		  setRefreshKey(prevKey => prevKey + 1); // Increment the key to force re-render
           setUploadError('');
         })
@@ -43,31 +44,28 @@ const DragDrop = () => {
           setUploadError('Error processing file');
         });
       }
-  }, [setUploadedImages, setAnalyzedImages]);
+  }, [setUploadedImages, setAnalyzedImages, selectedExecutor, selectedModel]);
 
   return (
-    <div>
-      <div
-        onDrop={onDrop}
-        onDragOver={(e) => e.preventDefault()}
-        style={{
-          border: '2px dashed #ccc',
-          borderRadius: '20px',
-          width: '300px',
-          height: '75px',
-          padding: '20px',
-          position: 'sticky',
-          top: 0,
-          textAlign: 'center',
-          marginTop: '20px',
-          marginBottom: '20px',
-          zIndex: 1000,
-        }}
-      >
-      Drag and drop an image here!
-      </div>
-      {uploadError && <div style={{ color: 'red' }}>{uploadError}</div>}
-    </div>
+    <Card 
+      onDrop={onDrop}
+      onDragOver={(e) => e.preventDefault()}
+      style={{
+        border: '2px dashed #ccc',
+        borderRadius: '20px',
+        width: '500px',
+        height: '90px',
+        padding: '4px',
+        textAlign: 'center',
+        marginTop: '20px',
+        marginBottom: '20px',
+      }}
+    >
+      <Card.Body>
+        Drag and drop an image here!
+        {uploadError && <div style={{ color: 'red' }}>{uploadError}</div>}
+      </Card.Body>
+    </Card>
   );
 };
 

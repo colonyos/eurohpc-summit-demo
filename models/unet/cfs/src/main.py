@@ -31,7 +31,11 @@ processid = os.environ.get("COLONIES_PROCESS_ID")
 print("projdir:", projdir)
 print("processid:", processid)
 
-sys.stdout.flush()
+if not os.path.exists(projdir + '/result/training/'):
+    os.makedirs(projdir + '/result/training/')
+
+if not os.path.exists(projdir + '/result/models/'):
+    os.makedirs(projdir + '/result/models/')
 
 ####################################################
 # Data preparation
@@ -63,9 +67,6 @@ for id in tqdm(range(len(mask_names)), desc="Mask"):
 
 # Train test split
 images_train, images_test, mask_train, mask_test = train_test_split(images, masks, test_size=0.25)
-
-sys.stdout.flush()
-
 
 ####################################################
 # Define U-net architecture
@@ -137,7 +138,6 @@ model.summary()
 
 sys.stdout.flush()
 
-
 ####################################################
 # Training
 #####################################################
@@ -145,7 +145,7 @@ sys.stdout.flush()
 def mask_threshold(image, threshold=0.25):
   return image>threshold
 
-epochs = 600 
+epochs = 2 
 batch_size = 32
 
 history = model.fit(images_train, mask_train,
@@ -175,14 +175,15 @@ plt.legend(['TRAIN', 'TEST'], loc='upper left')
 
 plt.tight_layout()
 
-plt.savefig(projdir + '/result/res_' + processid + '.png')
+
+plt.savefig(projdir + '/result/training/res_' + processid + '.png')
 
 ####################################################
 # Save model weights 
 ####################################################
 
-name = "unet600" 
-weights_path = os.path.join(projdir, 'result', f'weights_{name}.h5')
+name = "unet2" 
+weights_path = os.path.join(projdir, 'result', 'models', f'weights_{name}.h5')
 model.save_weights(weights_path)
 print(f"Model weights saved to {weights_path}")
 
@@ -214,7 +215,7 @@ def plot_results(threshold=0.5):
     plt.imshow(threshold_mask, cmap='gray');plt.title(f'Predicted Mask with cutoff={threshold}')
 
     plt.tight_layout()
-    plt.savefig(projdir + '/result/samples_' + processid + '.png')
+    plt.savefig(projdir + '/result/training/samples_' + processid + '.png')
 
 # Plot results on test data
 plot_results(threshold=0.4)
